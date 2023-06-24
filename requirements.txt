@@ -1,4 +1,10 @@
+alembic
 beautifulsoup4
 fastapi
+FastAPI-SQLAlchemy
+psycopg2-binary
+pydantic
+redis
 requests
+SQLAlchemy
 uvicorn

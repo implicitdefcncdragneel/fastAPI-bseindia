@@ -1,11 +1,15 @@
 FROM python:3.9
 
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
-COPY requirements.txt .
+COPY requirements.txt requirements.txt
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --upgrade pip
 
-COPY . .
+RUN pip3 install --no-cache-dir -r requirements.txt
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+COPY . /app
+
+EXPOSE 8000
