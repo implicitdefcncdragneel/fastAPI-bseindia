@@ -1,7 +1,9 @@
 alembic
 beautifulsoup4
+celery
 fastapi
 FastAPI-SQLAlchemy
+flower
 psycopg2-binary
 pydantic
 redis
