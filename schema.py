@@ -11,3 +11,16 @@ class DealsCreate(BaseModel):
 
     class Config:
         orm_mode = True
+
+class DealUpdate(BaseModel):
+    id: int
+    deal_date: str
+    security_code: str
+    security_name: str
+    client_name: str
+    deal_type: str
+    quantity: str
+    price: str
+
+    class Config:
+        orm_mode = True

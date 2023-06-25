@@ -1,15 +1,50 @@
 import requests
 from bs4 import BeautifulSoup
 
-from fastapi_sqlalchemy import db
+from celery import Celery
+from celery.schedules import crontab
 
-from celery_worker.celery import celery_app
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 from models import Deals
 from schema import DealsCreate
 
-@celery_app.tasks
-def data_test():
+# Create a connection to the PostgreSQL database.
+engine = create_engine(
+    "postgresql+psycopg2://admin:admin@bsedb:5432/bsedeals"
+)
+db_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
+db = db_session.session_factory()
+
+celery_app = Celery(__name__)
+
+# Configure the Celery application object.
+celery_app.conf.update(
+    broker_url='redis://redis:6379/0',
+    result_backend='redis://redis:6379/0',
+    task_serializer='json',
+    result_serializer='json',
+    accept_content=['json'],
+    timezone='Asia/Kolkata',
+    beat_schedule={
+        'bse_task': {
+            'task': 'dataTest',
+            'schedule': crontab(hour=0, minute=0),
+            'args': (),
+        },
+    },
+)
+
+@celery_app.task(name="dataTest")
+def dataTest():
+    """
+    Retrieve the latest bulk deals data from the BSE website and store it in the database.
+
+    Returns:
+        None
+    """
+
     url = '''https://www.bseindia.com/markets/equity/EQReports/bulk_deals.aspx'''
 
     headers = {
@@ -19,9 +54,9 @@ def data_test():
     c = res.content
     soup = BeautifulSoup(c, "html.parser")
 
+    # Parse the bulk deals data from the HTML table.
     table = soup.find('table', id='ContentPlaceHolder1_gvbulk_deals')
     data = []
-
     rows = table.find_all('tr', class_='tdcolumn')
 
     for row in rows:
@@ -40,7 +75,7 @@ def data_test():
             price=row[6],
         )
 
-        existing_deal = db.session.query(Deals).filter(
+        existing_deal = db.query(Deals).filter(
             Deals.security_code == row[1],
             Deals.security_name == row[2],
             Deals.client_name == row[3]
@@ -53,6 +88,6 @@ def data_test():
             existing_deal.price = row[6]
         else:
             db_deal = Deals(**deal.dict())
-            db.session.add(db_deal)
+            db.add(db_deal)
         
-        db.session.commit()
+        db.commit()
