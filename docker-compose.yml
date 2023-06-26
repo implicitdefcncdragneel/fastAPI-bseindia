@@ -60,9 +60,7 @@ services:
   celery_worker:
     container_name: celery_worker
     build: .
-    command: >
-      sh -c  "celery -A celery_worker.celery_app worker --loglevel=info &&
-              celery -A celery_worker.celery_app beat --loglevel=info"
+    command: celery -A celery_worker.celery_app worker --loglevel=info
     volumes:
       - .:/app
     environment:
@@ -71,6 +69,22 @@ services:
     depends_on:
       - bse
       - redis
+    networks:
+      - bsefastapinetwork
+
+  celery_beat:
+    container_name: celery_beat
+    build: .
+    command: celery -A celery_worker.celery_app beat --loglevel=info
+    volumes:
+      - .:/app
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - bse
+      - redis
+      - celery_worker
     networks:
       - bsefastapinetwork
 
